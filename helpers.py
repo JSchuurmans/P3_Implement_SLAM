@@ -40,7 +40,7 @@ def display_world(world_size, position, landmarks=None):
     if(landmarks is not None):
         # loop through all path indices and draw a dot (unless it's at the car's location)
         for pos in landmarks:
-            if(pos != position):
+            if(pos[0] != position[0] and pos[1] != position[1]):
                 ax.text(pos[0], pos[1], 'x', ha='center', va='center', color='purple', fontsize=20)
     
     # Display final result
@@ -55,32 +55,37 @@ def display_world(world_size, position, landmarks=None):
 def make_data(N, num_landmarks, world_size, measurement_range, motion_noise, 
               measurement_noise, distance):
 
-
-    # check if data has been made
+    # check that data has been made
+    try:
+        check_for_data(num_landmarks, world_size, measurement_range, motion_noise, measurement_noise)
+    except ValueError:
+        print('Error: You must implement the sense function in robot_class.py.')
+        return []
+    
     complete = False
+    
+    r = robot(world_size, measurement_range, motion_noise, measurement_noise)
+    r.make_landmarks(num_landmarks)
 
     while not complete:
 
         data = []
 
-        # make robot and landmarks
-        r = robot(world_size, measurement_range, motion_noise, measurement_noise)
-        r.make_landmarks(num_landmarks)
         seen = [False for row in range(num_landmarks)]
     
         # guess an initial motion
         orientation = random.random() * 2.0 * pi
         dx = cos(orientation) * distance
         dy = sin(orientation) * distance
-    
+            
         for k in range(N-1):
     
             # collect sensor measurements in a list, Z
-            Z = r.sense()
+            Z = list(r.sense())
 
             # check off all landmarks that were observed 
             for i in range(len(Z)):
-                seen[Z[i][0]] = True
+                seen[int(Z[i][0])] = True
     
             # move
             while not r.move(dx, dy):
@@ -101,3 +106,15 @@ def make_data(N, num_landmarks, world_size, measurement_range, motion_noise,
 
 
     return data
+
+
+def check_for_data(num_landmarks, world_size, measurement_range, motion_noise, measurement_noise):
+    # make robot and landmarks
+    r = robot(world_size, measurement_range, motion_noise, measurement_noise)
+    r.make_landmarks(num_landmarks)
+    
+    
+    # check that sense has been implemented/data has been made
+    test_Z = r.sense()
+    if(test_Z is None):
+        raise ValueError
